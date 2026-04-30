@@ -1,0 +1,43 @@
+# Arduino Build Files
+*.hex
+*.elf
+*.bin
+build/
+*.eep
+*.map
+
+# Arduino IDE
+*.tmp
+*.bak
+*~
+
+# OS Generated Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Documentation Build
+docs/_build/
+
+# Test Files
+test/
+tests/
+
+# Temporary Files
+tmp/
+temp/
