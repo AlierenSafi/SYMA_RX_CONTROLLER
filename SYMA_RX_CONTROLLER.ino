@@ -1,54 +1,42 @@
-/*
-  SYMA RC Controller to USB Gamepad Adapter
-  
-  Copyright (c) 2024
-  
-  Permission is hereby granted, free of charge, to any person obtaining a copy
-  of this software and associated documentation files (the "Software"), to deal
-  in the Software without restriction, including without limitation the rights
-  to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-  copies of the Software, and to permit persons to whom the Software is
-  furnished to do so, subject to the following conditions:
-  
-  The above copyright notice and this permission notice shall be included in all
-  copies or substantial portions of the Software.
-  
-  DESCRIPTION:
-  This firmware converts SYMA X5C-1/X5SW 2.4GHz RC transmitter signals into
-  standard USB HID gamepad input. It uses an Arduino Mega 2560 with NRF24L01+
-  module to receive RF signals and MegaJoy library for USB gamepad emulation.
-  
-  HARDWARE REQUIREMENTS:
-  - Arduino Mega 2560
-  - NRF24L01+ 2.4GHz transceiver module
-  - SYMA X5C-1 or compatible transmitter
-  
-  CONNECTIONS:
-  NRF24L01+    Arduino Mega
-  ---------    -----------
-  VCC          3.3V
-  GND          GND
-  CE           Pin 10
-  CSN          Pin 9
-  SCK          Pin 52
-  MOSI         Pin 51
-  MISO         Pin 50
-  
-  COMPATIBLE TRANSMITTERS:
-  - SYMA X5C-1 (blue/green LED)
-  - SYMA X5SW
-  - SYMA X11/X11C
-  - SYMA X12
-  
-  NOTES:
-  - Pins 0 and 1 are reserved for serial communication with ATmega16U2
-  - Timer0 is used by MegaJoy library for USB communication
-  - Do not use Servo library - it conflicts with Timer0
-  
-  Based on:
-  - symaxrx library by execuc and Suxsem
-  - MegaJoy library by Alan Chatham
-*/
+/**
+ * SYMA_RC_Controller.ino
+ * 
+ * Main application: SYMA RC Transmitter to USB Gamepad Adapter
+ * 
+ * This firmware converts SYMA X5C-1/X5SW 2.4GHz RC transmitter signals
+ * into standard USB HID gamepad input using Arduino Mega 2560.
+ * 
+ * HARDWARE REQUIREMENTS:
+ * - Arduino Mega 2560
+ * - NRF24L01+ 2.4GHz transceiver module
+ * - SYMA X5C-1 or compatible transmitter
+ * 
+ * CONNECTIONS:
+ * NRF24L01+    Arduino Mega
+ * ---------    -----------
+ * VCC          3.3V
+ * GND          GND
+ * CE           Pin 10
+ * CSN          Pin 9
+ * SCK          Pin 52
+ * MOSI         Pin 51
+ * MISO         Pin 50
+ * 
+ * COMPATIBLE TRANSMITTERS:
+ * - SYMA X5C-1 (blue/green LED)
+ * - SYMA X5SW
+ * - SYMA X11/X11C
+ * - SYMA X12
+ * 
+ * NOTES:
+ * - Pins 0 and 1 are reserved for serial communication with ATmega16U2
+ * - Timer0 is used by MegaJoy library for USB communication
+ * - Do not use Servo library - it conflicts with Timer0
+ * 
+ * Based on:
+ * - symaxrx library by execuc and Suxsem
+ * - MegaJoy library by Alan Chatham
+ */
 
 #include <SPI.h>
 #include "src/nrf24/nrf24l01p.h"
@@ -171,7 +159,7 @@ void loop() {
   - Axis 5: Pitch Trim
   - Axis 6: Roll Trim
 */
-void updateGamepadFromTransmitter(void) {
+void updateGamepadFromTransmitter() {
   // Left Stick X - Yaw (rotation left/right)
   // Input: 127 (left) to -127 (right)
   gamepadData.analogAxisArray[0] = map(transmitterData.yaw, 127, -127, AXIS_MIN, AXIS_MAX);
@@ -229,7 +217,7 @@ void updateGamepadFromTransmitter(void) {
   Resets all gamepad controls to neutral state.
   Called when transmitter connection is lost.
 */
-void resetGamepadToNeutral(void) {
+void resetGamepadToNeutral() {
   // Clear all buttons
   for (int i = 0; i < 8; i++) {
     gamepadData.buttonArray[i] = 0;
@@ -251,7 +239,7 @@ void resetGamepadToNeutral(void) {
   Sets safe neutral position during binding.
   Throttle is set to minimum for safety.
 */
-void setSafeNeutralPosition(void) {
+void setSafeNeutralPosition() {
   // Clear all buttons
   for (int i = 0; i < 8; i++) {
     gamepadData.buttonArray[i] = 0;

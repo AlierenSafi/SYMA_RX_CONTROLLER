@@ -1,10 +1,10 @@
 /**
  * SYMA_RC_Debug.ino
  * 
- * Kumanda baglanti ve veri test araci.
- * Seri monitor uzerinden baglanti durumu ve alinan verileri gosterir.
+ * Transmitter connection and data test tool.
+ * Displays connection status and received data via serial monitor.
  * 
- * Baglanti:
+ * Connections:
  * - NRF24L01+ VCC -> 3.3V
  * - NRF24L01+ GND -> GND
  * - NRF24L01+ CE  -> Pin 10
@@ -13,11 +13,11 @@
  * - NRF24L01+ MOSI -> Pin 51 (Mega)
  * - NRF24L01+ MISO -> Pin 50 (Mega)
  * 
- * Kullanim:
- * 1. Arduino'ya yukleyin
- * 2. Seri monitoru acin (115200 baud)
- * 3. Kumandayi acin
- * 4. Baglanti durumunu ve verileri gozlemleyin
+ * Usage:
+ * 1. Upload to Arduino
+ * 2. Open serial monitor (115200 baud)
+ * 3. Turn on transmitter
+ * 4. Observe connection status and data
  */
 
 #include <SPI.h>
@@ -29,14 +29,14 @@ symaxProtocol protocolHandler;
 rx_values_t transmitterData;
 
 unsigned long lastPrintTime = 0;
-const unsigned long PRINT_INTERVAL = 100; // 100ms'de bir guncelle
+const unsigned long PRINT_INTERVAL = 100; // Update every 100ms
 
 void setup() {
   Serial.begin(115200);
-  while (!Serial) { ; } // Leonardo/Micro icin bekle
+  while (!Serial) { ; } // Wait for Leonardo/Micro
   
   Serial.println(F("========================================"));
-  Serial.println(F("  SYMA RC Kumanda Test Araci"));
+  Serial.println(F("  SYMA RC Transmitter Test Tool"));
   Serial.println(F("========================================"));
   Serial.println();
   
@@ -45,8 +45,8 @@ void setup() {
   radioModule.setPwr(PWRLOW);
   protocolHandler.init(&radioModule);
   
-  Serial.println(F("NRF24L01+ baslatildi. Kumanda baglantisi bekleniyor..."));
-  Serial.println(F("Kumandayi acin ve bekleyin."));
+  Serial.println(F("NRF24L01+ initialized. Waiting for transmitter..."));
+  Serial.println(F("Turn on transmitter and wait."));
   Serial.println();
 }
 
@@ -60,15 +60,15 @@ void loop() {
     
     switch (status) {
       case NOT_BOUND:
-        Serial.println(F("[DURUM] Eslesme Yok - Kumanda acik mi?"));
+        Serial.println(F("[STATUS] Not Bound - Is transmitter on?"));
         break;
         
       case BIND_IN_PROGRESS:
-        Serial.println(F("[DURUM] Baglanti kuruluyor..."));
+        Serial.println(F("[STATUS] Binding in progress..."));
         break;
         
       case BOUND_NO_VALUES:
-        Serial.println(F("[DURUM] Bagli - Veri bekleniyor..."));
+        Serial.println(F("[STATUS] Connected - Waiting for data..."));
         break;
         
       case BOUND_NEW_VALUES:
@@ -80,39 +80,39 @@ void loop() {
 
 void printTransmitterData() {
   Serial.println(F("----------------------------------------"));
-  Serial.println(F("[VERI ALINDI]"));
+  Serial.println(F("[DATA RECEIVED]"));
   Serial.println();
   
-  // Analog degerler
-  Serial.println(F("--- Analog Kontroller ---"));
-  Serial.print(F("Throttle (Gaz):    ")); 
+  // Analog values
+  Serial.println(F("--- Analog Controls ---"));
+  Serial.print(F("Throttle:          ")); 
   printBar(transmitterData.throttle, 0, 255);
   Serial.print(F("  ")); Serial.print(transmitterData.throttle); Serial.println(F("/255"));
   
-  Serial.print(F("Yaw (Donus):       ")); 
+  Serial.print(F("Yaw (Rotation):    ")); 
   printSignedBar(transmitterData.yaw, -127, 127);
   Serial.print(F("  ")); Serial.print(transmitterData.yaw); Serial.println();
   
-  Serial.print(F("Pitch (Egim):      ")); 
+  Serial.print(F("Pitch (Tilt):      ")); 
   printSignedBar(transmitterData.pitch, -127, 127);
   Serial.print(F("  ")); Serial.print(transmitterData.pitch); Serial.println();
   
-  Serial.print(F("Roll (Yatma):      ")); 
+  Serial.print(F("Roll (Bank):       ")); 
   printSignedBar(transmitterData.roll, -127, 127);
   Serial.print(F("  ")); Serial.print(transmitterData.roll); Serial.println();
   
   Serial.println();
   
-  // Trim degerler
-  Serial.println(F("--- Trim Ayarlari ---"));
+  // Trim values
+  Serial.println(F("--- Trim Settings ---"));
   Serial.print(F("Yaw Trim:    ")); Serial.println(transmitterData.trim_yaw);
   Serial.print(F("Pitch Trim:  ")); Serial.println(transmitterData.trim_pitch);
   Serial.print(F("Roll Trim:   ")); Serial.println(transmitterData.trim_roll);
   
   Serial.println();
   
-  // Butonlar
-  Serial.println(F("--- Butonlar ---"));
+  // Buttons
+  Serial.println(F("--- Buttons ---"));
   Serial.print(F("Video:      ")); printOnOff(transmitterData.video);
   Serial.print(F("Picture:    ")); printOnOff(transmitterData.picture);
   Serial.print(F("High Speed: ")); printOnOff(transmitterData.highspeed);
@@ -149,8 +149,8 @@ void printSignedBar(int8_t value, int8_t minVal, int8_t maxVal) {
 
 void printOnOff(bool state) {
   if (state) {
-    Serial.println(F("[ ACIK ]"));
+    Serial.println(F("[ ON ]"));
   } else {
-    Serial.println(F("[KAPALI]"));
+    Serial.println(F("[OFF ]"));
   }
 }

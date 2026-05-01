@@ -1,17 +1,17 @@
 /**
  * SYMA_RC_Gamepad.ino
  * 
- * SYMA kumandadan USB Gamepad donusturucu - GUNCEL SURUM
+ * SYMA Transmitter to USB Gamepad Converter - UPDATED VERSION
  * 
- * DEGISIKLIKLER:
- * - Seri monitor destegi eklendi (debug icin)
- * - MegaJoy Timer0 cakismasi cozuldu
- * - Gamepad ismi: AES Controller
+ * CHANGES:
+ * - Added serial monitor support (for debugging)
+ * - Resolved MegaJoy Timer0 conflict
+ * - Device name: AES Controller
  * 
- * ONEMLI:
- * ATmega16U2'ye MegaJoy firmware yuklenmis olmali!
+ * IMPORTANT:
+ * ATmega16U2 must be flashed with MegaJoy firmware!
  * 
- * Baglanti:
+ * Connections:
  * - NRF24L01+ VCC  -> 3.3V
  * - NRF24L01+ GND  -> GND
  * - NRF24L01+ CE   -> Pin 10
@@ -26,10 +26,10 @@
 #include "symax_protocol.h"
 
 // -----------------------------------------------------------------
-// MEGAJOY YERINE KENDI GAMEPAD IMPLEMENTASYONUMUZ
+// CUSTOM GAMEPAD IMPLEMENTATION (REPLACING MEGAJOY)
 // -----------------------------------------------------------------
-// MegaJoy.h kendi Serial.begin(38400) ve Timer0 ISR'i kullaniyor.
-// Bu yuzden onun yerine kendi basit gamepad kodumuzu yaziyoruz.
+// MegaJoy.h uses its own Serial.begin(38400) and Timer0 ISR.
+// Therefore we implement our own simple gamepad code.
 
 #include <stdint.h>
 #include <util/atomic.h>
@@ -68,7 +68,7 @@ gamepadData_t getBlankControllerData(void) {
 }
 
 // -----------------------------------------------------------------
-// GLOBAL NESNELER
+// GLOBAL OBJECTS
 // -----------------------------------------------------------------
 
 nrf24l01p radioModule;
@@ -84,28 +84,27 @@ const unsigned long GAMEPAD_INTERVAL = 10; // 10ms = 100Hz
 // -----------------------------------------------------------------
 
 void setup() {
-  // Seri monitor debug icin (MegaJoy ile cakismaz cunku kendi kodumuzu kullaniyoruz)
+  // Serial monitor for debugging (does not conflict with MegaJoy since we use our own code)
   Serial.begin(115200);
-  Serial.println(F("AES Controller baslatiliyor..."));
+  Serial.println(F("AES Controller starting..."));
   
-  // SPI master mod
+  // SPI master mode
   pinMode(SS, OUTPUT);
   
-  // NRF24L01+ baslat
+  // Initialize NRF24L01+
   radioModule.setPins(10, 9);
   radioModule.setPwr(PWRLOW);
   protocolHandler.init(&radioModule);
   
-  // Gamepad baslangic verisi
+  // Initial gamepad data
   gamepadData = getBlankControllerData();
   
-  // ATmega16U2 ile haberlesme baslat (38400 baud)
-  // Serial1 kullaniyoruz cunku Serial debug icin ayrildi
-  // EGER MegaJoy firmware yuklu ise, Serial0 (USB) uzerinden haberlesmeli
-  // Ama debug icin ayri bir Serial kullanmak gerekiyor
-  Serial.begin(38400); // Gamepad haberlesmesi
+  // Start communication with ATmega16U2 (38400 baud)
+  // We use Serial for both debug and gamepad communication
+  // If MegaJoy firmware is loaded, Serial0 (USB) is used for communication
+  Serial.begin(38400); // Gamepad communication
   
-  Serial.println(F("AES Controller hazir. Kumandayi acin."));
+  Serial.println(F("AES Controller ready. Turn on transmitter."));
 }
 
 // -----------------------------------------------------------------
@@ -129,18 +128,18 @@ void loop() {
       break;
       
     case BOUND_NO_VALUES:
-      // Son veriyi koru
+      // Keep last known state
       break;
   }
   
-  // Gamepad verilerini gonder
+  // Send gamepad data
   unsigned long now = millis();
   if (now - lastGamepadUpdate >= GAMEPAD_INTERVAL) {
     sendGamepadData();
     lastGamepadUpdate = now;
   }
   
-  // Debug ciktisi (her 500ms'de bir)
+  // Debug output (every 500ms)
   static unsigned long lastDebug = 0;
   if (now - lastDebug >= 500) {
     lastDebug = now;
@@ -149,15 +148,15 @@ void loop() {
 }
 
 // -----------------------------------------------------------------
-// GAMEPAD VERI GONDERIMI (ATmega16U2 ile haberlesme)
+// GAMEPAD DATA TRANSMISSION (Communication with ATmega16U2)
 // -----------------------------------------------------------------
 
 void sendGamepadData() {
-  // MegaJoy firmware beklenen protokol:
-  // ATmega16U2 bir byte gonderir (index), ATmega2560 o indeksteki byte'i geri gonderir
-  // Ama biz basit bir protokol kullanacagiz
+  // MegaJoy firmware expected protocol:
+  // ATmega16U2 sends one byte (index), ATmega2560 returns that byte from controller data structure
+  // We use a simple protocol
   
-  // Eger Serial uzerinden istek gelirse yanit ver
+  // If Serial request arrives, respond
   while (Serial.available() > 0) {
     byte index = Serial.read();
     if (index < sizeof(gamepadData_t)) {
@@ -167,26 +166,26 @@ void sendGamepadData() {
 }
 
 // -----------------------------------------------------------------
-// VERI DONUSTURME
+// DATA CONVERSION
 // -----------------------------------------------------------------
 
 void updateGamepadFromTransmitter() {
-  // Sol Stick
+  // Left Stick
   gamepadData.analogAxisArray[0] = map(transmitterData.yaw, 127, -127, 0, 1023);
   gamepadData.analogAxisArray[1] = map(transmitterData.throttle, 0, 255, 0, 1023);
   
-  // Sag Stick
+  // Right Stick
   gamepadData.analogAxisArray[2] = map(transmitterData.roll, 127, -127, 0, 1023);
   gamepadData.analogAxisArray[3] = map(transmitterData.pitch, -127, 127, 0, 1023);
   
-  // Butonlar
+  // Buttons
   gamepadData.buttonArray[0] = 0;
   if (transmitterData.video)      gamepadData.buttonArray[0] |= (1 << 0);
   if (transmitterData.picture)    gamepadData.buttonArray[0] |= (1 << 1);
   if (transmitterData.highspeed)  gamepadData.buttonArray[0] |= (1 << 2);
   if (transmitterData.flip)       gamepadData.buttonArray[0] |= (1 << 3);
   
-  // Trim degerleri
+  // Trim values
   gamepadData.analogAxisArray[4] = map(transmitterData.trim_yaw, -31, 31, 0, 1023);
   gamepadData.analogAxisArray[5] = map(transmitterData.trim_pitch, -31, 31, 0, 1023);
   gamepadData.analogAxisArray[6] = map(transmitterData.trim_roll, -31, 31, 0, 1023);
@@ -206,17 +205,17 @@ void setSafeNeutralPosition() {
 }
 
 // -----------------------------------------------------------------
-// DEBUG CIKTISI
+// DEBUG OUTPUT
 // -----------------------------------------------------------------
 
 void printDebugInfo(uint8_t status) {
-  Serial.print(F("[DEBUG] Durum: "));
+  Serial.print(F("[DEBUG] Status: "));
   switch (status) {
-    case NOT_BOUND:         Serial.print(F("ESLESME_YOK")); break;
-    case BIND_IN_PROGRESS:  Serial.print(F("BAGLANIYOR")); break;
-    case BOUND_NO_VALUES:   Serial.print(F("BAGLI_BEKLIYOR")); break;
-    case BOUND_NEW_VALUES:  Serial.print(F("VERI_ALINDI")); break;
-    default:                Serial.print(F("BILINMIYOR")); break;
+    case NOT_BOUND:         Serial.print(F("NOT_BOUND")); break;
+    case BIND_IN_PROGRESS:  Serial.print(F("BINDING")); break;
+    case BOUND_NO_VALUES:   Serial.print(F("CONNECTED_WAITING")); break;
+    case BOUND_NEW_VALUES:  Serial.print(F("DATA_RECEIVED")); break;
+    default:                Serial.print(F("UNKNOWN")); break;
   }
   
   if (status == BOUND_NEW_VALUES) {
@@ -224,7 +223,7 @@ void printDebugInfo(uint8_t status) {
     Serial.print(F(" Yaw:")); Serial.print(transmitterData.yaw);
     Serial.print(F(" Pitch:")); Serial.print(transmitterData.pitch);
     Serial.print(F(" Roll:")); Serial.print(transmitterData.roll);
-    Serial.print(F(" Butonlar:"));
+    Serial.print(F(" Buttons:"));
     if (transmitterData.video)     Serial.print(F(" Video"));
     if (transmitterData.picture)   Serial.print(F(" Picture"));
     if (transmitterData.highspeed) Serial.print(F(" HighSpeed"));

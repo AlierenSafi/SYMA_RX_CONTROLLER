@@ -4,7 +4,7 @@ A professional-grade firmware that converts SYMA X5C-1/X5SW 2.4GHz RC transmitte
 
 ## Overview
 
-This firmware runs on an Arduino Mega 2560 with an NRF24L01+ 2.4GHz transceiver module. It receives RF signals from SYMA transmitters and emulates a USB gamepad using the MegaJoy library.
+This firmware runs on an Arduino Mega 2560 with an NRF24L01+ 2.4GHz transceiver module. It receives RF signals from SYMA transmitters and emulates a USB gamepad using a custom MegaJoy firmware for the ATmega16U2 USB interface chip.
 
 ### Features
 
@@ -15,6 +15,7 @@ This firmware runs on an Arduino Mega 2560 with an NRF24L01+ 2.4GHz transceiver 
 - Signal loss detection and safe fail-state
 - 100Hz USB update rate
 - Professional-grade code architecture with modular design
+- Custom device name: **AES Controller**
 
 ## Hardware Requirements
 
@@ -64,13 +65,23 @@ SYMA_RX_CONTROLLER/
 │   │   └── symax_protocol.cpp  # SYMA protocol implementation
 │   └── megajoy/
 │       └── MegaJoy.h           # USB gamepad library
-├── firmware/
-│   └── MegaJoy.hex             # ATmega16U2 USB firmware
-├── docs/
-│   └── hardware_setup.md       # Detailed hardware guide
-├── README.md                   # This file
-├── LICENSE                     # MIT License
-└── .gitignore                  # Git ignore rules
+├── ATmega8u2Code/
+│   └── HexFiles/
+│       ├── MegaJoy.hex             # Custom gamepad firmware (AES Controller)
+│       ├── Arduino-usbserial-mega.hex  # Standard Arduino firmware
+│       ├── batchisp.exe            # Atmel firmware programmer
+│       └── rename_gamepad.py       # Python script to rename device
+├── examples/
+│   ├── SYMA_RC_Debug/
+│   │   └── SYMA_RC_Debug.ino     # Serial monitor debug sketch
+│   └── SYMA_RC_Gamepad/
+│       └── SYMA_RC_Gamepad.ino   # Standalone gamepad sketch
+├── AES_Controller_Flash.bat      # Flash gamepad firmware
+├── TurnIntoAnArduino.bat         # Restore standard Arduino firmware
+├── MegaJoy - Attack!.bat         # Legacy flash script
+├── README.md                     # This file
+├── LICENSE                       # MIT License
+└── .gitignore                    # Git ignore rules
 ```
 
 ### Module Descriptions
@@ -123,24 +134,23 @@ Enables Arduino Mega 2560 to act as a native USB HID gamepad. Communicates with 
 
 ### Step 1: Flash ATmega16U2 USB Firmware
 
-The Arduino Mega 2560's USB interface chip (ATmega16U2) must be flashed with the MegaJoy firmware to enable gamepad functionality.
+The Arduino Mega 2560's USB interface chip (ATmega16U2) must be flashed with the custom gamepad firmware to enable gamepad functionality.
 
 **Windows:**
 ```batch
-# Put ATmega16U2 in DFU mode (short pins or use reset button)
-# Flash firmware
-TurnIntoAnArduino.bat
+# Put ATmega16U2 in DFU mode (short RESET and GND pins on ICSP header)
+# Then run:
+AES_Controller_Flash.bat
 ```
 
-**Linux/macOS:**
-```bash
-# Put ATmega16U2 in DFU mode
-sudo ./TurnIntoAnArduino.sh
+**To restore standard Arduino firmware:**
+```batch
+TurnIntoAnArduino.bat
 ```
 
 **Manual Method:**
 1. Short the ICSP header pins to enter DFU mode
-2. Use `dfu-programmer` or Atmel Flip to flash `firmware/MegaJoy.hex`
+2. Use `dfu-programmer` or Atmel Flip to flash the appropriate hex file
 3. Reset the board
 
 ### Step 2: Upload Main Sketch
@@ -155,7 +165,6 @@ sudo ./TurnIntoAnArduino.sh
 1. Power on the Arduino Mega 2560
 2. Turn on the SYMA transmitter
 3. The transmitter will automatically bind within 1-2 seconds
-4. LED indicators (if connected) show bind status
 
 ## Controller Mapping
 
@@ -229,6 +238,16 @@ const int AXIS_MAX = 1023;
 const int AXIS_CENTER = 512;
 ```
 
+## Examples
+
+### Debug Sketch
+
+Use `examples/SYMA_RC_Debug/SYMA_RC_Debug.ino` to test transmitter connection and view received data via serial monitor (115200 baud).
+
+### Standalone Gamepad
+
+Use `examples/SYMA_RC_Gamepad/SYMA_RC_Gamepad.ino` for a standalone gamepad implementation without the MegaJoy library dependency.
+
 ## Troubleshooting
 
 ### No Binding
@@ -262,7 +281,7 @@ const int AXIS_CENTER = 512;
 2. Check USB cable (use data cable, not charge-only)
 3. Try different USB port
 4. Check Device Manager for driver issues
-5. Re-flash MegaJoy firmware
+5. Re-flash AES Controller firmware
 
 ### Erratic Axis Behavior
 
@@ -274,13 +293,29 @@ const int AXIS_CENTER = 512;
 3. Verify correct axis mapping in code
 4. Add deadzone handling if needed
 
+## Customizing Device Name
+
+To change the USB device name from "AES Controller" to something else:
+
+1. Edit `ATmega8u2Code/HexFiles/rename_gamepad.py`
+2. Change the `new_text` variables:
+```python
+modified = replace_unicode_string(binary, "AES Controller ", "Your Name     ")
+modified = replace_unicode_string(modified, "AES Electronics                    ", "Your Company                       ")
+```
+3. Run the script:
+```bash
+python rename_gamepad.py
+```
+4. Flash the new `MegaJoy.hex` file
+
 ## Development
 
 ### Building from Source
 
 ```bash
 # Clone repository
-git clone https://github.com/yourusername/SYMA_RX_CONTROLLER.git
+git clone https://github.com/AlierenSafi/SYMA_RX_CONTROLLER.git
 cd SYMA_RX_CONTROLLER
 
 # Open in Arduino IDE

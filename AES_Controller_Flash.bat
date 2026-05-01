@@ -1,83 +1,81 @@
 @echo off
 REM ============================================================
 REM  AES Controller - ATmega16U2 Gamepad Firmware Flasher
-REM  Arduino Mega 2560 icin
+REM  For Arduino Mega 2560 R3
 REM ============================================================
 
 if not exist ATmega8u2Code\HexFiles\batchisp.exe (
     echo.
-    echo HATA: ATmega8u2Code/HexFiles/batchisp.exe bulunamadi!
+    echo ERROR: ATmega8u2Code\HexFiles\batchisp.exe not found!
     echo.
-    echo Bu .bat dosyasini tasidiniz mi?
-    echo ATmega8u2Code klasorunu sildiniz mi?
+    echo Did you move this .bat file?
+    echo Did you delete something in the ATmega8u2Code folder?
     echo.
-    echo Cikmak icin bir tusa basin...
+    echo Press any key to exit...
     goto EXIT
 )
 
 echo.
 echo ============================================================
-echo   AES Controller - Gamepad Firmware Yukleyici
+echo   AES Controller - Gamepad Firmware Flasher
 echo ============================================================
 echo.
-echo ONEMLI: Arduino'yu DFU moduna almadan once:
-echo  1. Arduino'yu USB ile bilgisayara baglayin
-echo  2. ICSP headerindaki 2 pini kisa devre yapin (RESET + GND)
-echo  3. 1 saniye bekleyin ve pinleri ayirin
-echo  4. Arduino DFU modunda olmali
+echo IMPORTANT: Before putting Arduino in DFU mode:
+echo  1. Connect Arduino to PC via USB
+echo  2. Short the 2 pins on ICSP header (RESET + GND)
+echo  3. Wait 1 second and release the pins
+echo  4. Arduino should be in DFU mode
 echo.
-echo Devam etmek icin bir tusa basin...
+echo Press any key to continue...
 pause > nul
 
 echo.
-echo Firmware yukleniyor...
+echo Flashing firmware...
 echo.
 
 cd ATmega8u2Code\HexFiles
 
-echo [1/2] Arduino Mega 2560 R1/R2 deneniyor (at90usb82)...
+echo [1/2] Trying Arduino Mega 2560 R1/R2 (at90usb82)...
 @echo on
-batchisp -device at90usb82 -hardware usb -operation erase f memory flash blankcheck loadbuffer "AES_Controller.hex" program verify start reset 1024
+batchisp -device at90usb82 -hardware usb -operation erase f memory flash blankcheck loadbuffer "MegaJoy.hex" program verify start reset 1024
 @echo off
 
-if %errorlevel% EQU 0 (
-    goto SUCCESS
-)
+if %errorlevel% EQU 0 goto SUCCESS
 
 echo.
-echo [2/2] Arduino Mega 2560 R3 deneniyor (atmega16u2)...
+echo [2/2] Trying Arduino Mega 2560 R3 (atmega16u2)...
 echo.
 @echo on
-batchisp -device atmega16u2 -hardware usb -operation erase f memory flash blankcheck loadbuffer "AES_Controller.hex" program verify start reset 1024
+batchisp -device atmega16u2 -hardware usb -operation erase f memory flash blankcheck loadbuffer "MegaJoy.hex" program verify start reset 1024
 @echo off
 
 if %errorlevel% NEQ 0 (
     echo.
     echo ============================================================
-    echo   HATA: Firmware yuklenemedi!
+    echo   ERROR: Firmware was NOT loaded!
     echo ============================================================
     echo.
-    echo Olası nedenler:
-    echo  - Atmel FLIP yuklu degil: http://www.atmel.com/tools/FLIP.aspx
-echo  - Arduino bagli degil
-echo  - Arduino DFU modunda degil
-echo  - Surucu sorunu
+    echo Possible reasons:
+    echo  - Atmel FLIP not installed: http://www.atmel.com/tools/FLIP.aspx
+echo  - Arduino not connected
+echo  - Arduino not in DFU mode
+echo  - Driver issue
 echo.
-    echo Cikmak icin bir tusa basin...
+    echo Press any key to exit...
     goto EXIT
 )
 
 :SUCCESS
 echo.
 echo ============================================================
-echo   BASARILI! AES Controller firmware yuklendi.
+echo   SUCCESS! AES Controller firmware loaded.
 echo ============================================================
 echo.
-echo Simdi yapmaniz gerekenler:
-echo  1. Arduino'nun USB kablosunu cikarin
-echo  2. 3 saniye bekleyin
-echo  3. USB kablosunu tekrar takin
-echo  4. Windows'ta gamepad olarak gorunecek
+echo Now you need to:
+echo  1. Unplug Arduino USB cable
+echo  2. Wait 3 seconds
+echo  3. Plug USB cable back in
+echo  4. Windows will show it as "AES Controller"
 echo.
 
 :EXIT
